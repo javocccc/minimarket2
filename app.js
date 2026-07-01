@@ -198,11 +198,6 @@ function renderLogin(errorMsg) {
                  autocomplete="current-password" placeholder="••••••••" />
           <button class="btn" type="submit">Entrar</button>
         </form>
-        <div class="demo-users">
-          <div><b>admin</b> / admin123 — agrega y elimina productos</div>
-          <div><b>reponedor</b> / repo123 — solo agrega productos</div>
-          <div><b>cliente</b> / cliente123 — compra productos</div>
-        </div>
       </div>
     </div>
   `;
