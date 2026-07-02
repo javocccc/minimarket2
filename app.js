@@ -27,46 +27,23 @@ const SEED_PRODUCTS = [
 
 /* ---------- CATEGORÍAS DE EMOJIS ---------- */
 const EMOJI_CATEGORIES = [
-  {
-    label: '🥖 Panadería y Cereales',
-    emojis: ['🥖','🍞','🥐','🧁','🎂','🥣','🌽','🌾','🥨','🍩'],
-  },
-  {
-    label: '🥛 Lácteos',
-    emojis: ['🥛','🧀','🧈','🍦','🍨','🍧'],
-  },
-  {
-    label: '🍎 Frutas y Verduras',
-    emojis: ['🍎','🍊','🍋','🍇','🍓','🥝','🍅','🥕','🧅','🥦','🥑','🍌','🍑','🍐','🫐','🥬','🫑','🌶️'],
-  },
-  {
-    label: '🥩 Carnes y Proteínas',
-    emojis: ['🥩','🍗','🥚','🐟','🍤','🥓','🌭','🍖'],
-  },
-  {
-    label: '🥤 Bebidas',
-    emojis: ['🥤','🧃','☕','🧋','🍺','🍷','🥂','🫖','🧊','🍶','🥃'],
-  },
-  {
-    label: '🥫 Conservas y Enlatados',
-    emojis: ['🥫','🫙','🍯','🧂','🍚','🍝','🫘'],
-  },
-  {
-    label: '🍫 Snacks y Dulces',
-    emojis: ['🍫','🍬','🍭','🥜','🍿','🍪','🧇','🧆','🍡'],
-  },
-  {
-    label: '🧴 Limpieza e Higiene',
-    emojis: ['🧴','🧼','🪥','🧹','🧺','🧻','🫧','🪒','🪣','🪠'],
-  },
-  {
-    label: '🛒 General',
-    emojis: ['🛒','📦','🏷️','🛍️','💊','🩹','📱','🔋','🧲','🪤'],
-  },
+  { label: '🥖 Panadería y Cereales',    emojis: ['🥖','🍞','🥐','🧁','🎂','🥣','🌽','🌾','🥨','🍩'] },
+  { label: '🥛 Lácteos',                 emojis: ['🥛','🧀','🧈','🍦','🍨','🍧'] },
+  { label: '🍎 Frutas y Verduras',       emojis: ['🍎','🍊','🍋','🍇','🍓','🥝','🍅','🥕','🧅','🥦','🥑','🍌','🍑','🍐','🫐','🥬','🫑','🌶️'] },
+  { label: '🥩 Carnes y Proteínas',      emojis: ['🥩','🍗','🥚','🐟','🍤','🥓','🌭','🍖'] },
+  { label: '🥤 Bebidas',                 emojis: ['🥤','🧃','☕','🧋','🍺','🍷','🥂','🫖','🧊','🍶','🥃'] },
+  { label: '🥫 Conservas y Enlatados',   emojis: ['🥫','🫙','🍯','🧂','🍚','🍝','🫘'] },
+  { label: '🍫 Snacks y Dulces',         emojis: ['🍫','🍬','🍭','🥜','🍿','🍪','🧇','🧆','🍡'] },
+  { label: '🧴 Limpieza e Higiene',      emojis: ['🧴','🧼','🪥','🧹','🧺','🧻','🫧','🪒','🪣','🪠'] },
+  { label: '🛒 General',                 emojis: ['🛒','📦','🏷️','🛍️','💊','🩹','📱','🔋','🧲','🪤'] },
 ];
 
 /* ---------- ESTADO DEL EMOJI PICKER ---------- */
 let currentEmoji = '🛒';
+
+/* ---------- ESTADO DEL CARRITO (en memoria) ---------- */
+// Formato: { [productId]: quantity }
+let cart = {};
 
 /* =====================================================
    ALMACENAMIENTO (localStorage)
@@ -74,7 +51,6 @@ let currentEmoji = '🛒';
 function loadProducts() {
   const raw = localStorage.getItem('mm_products');
   let products = raw ? JSON.parse(raw) : [];
-  // Si no hay productos (primera vez o todos eliminados), cargar semilla
   if (!products || products.length === 0) {
     products = JSON.parse(JSON.stringify(SEED_PRODUCTS));
     localStorage.setItem('mm_products', JSON.stringify(products));
@@ -128,7 +104,7 @@ function showToast(msg) {
 const root = document.getElementById('root');
 
 /* =====================================================
-   EMOJI PICKER LOGIC
+   EMOJI PICKER
    ===================================================== */
 function buildEmojiPicker() {
   const categoriesHTML = EMOJI_CATEGORIES.map(cat => `
@@ -170,7 +146,6 @@ function selectEmoji(emoji) {
   if (panel) panel.classList.remove('open');
 }
 
-// Cerrar picker al hacer click fuera
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('emojiPanel');
   const wrap  = document.getElementById('emojiPickerWrap');
@@ -241,13 +216,14 @@ function renderApp() {
   `;
 
   document.getElementById('logoutBtn').addEventListener('click', () => {
+    cart = {};
     clearSession();
     renderLogin();
   });
 
-  if (user.role === 'admin')      renderAdmin();
+  if (user.role === 'admin')          renderAdmin();
   else if (user.role === 'reponedor') renderReponedor();
-  else                             renderCliente();
+  else                                renderCliente();
 }
 
 /* =====================================================
@@ -283,7 +259,6 @@ function renderAdmin() {
         </button>
       </form>
     </div>
-
     <div class="section-title">
       <h2>Catálogo</h2>
       <span>${products.length} producto(s) · puedes eliminarlos</span>
@@ -292,7 +267,6 @@ function renderAdmin() {
   `;
 
   renderProductGrid(products, { showDelete: true });
-
   document.getElementById('addForm').addEventListener('submit', (e) => {
     e.preventDefault();
     addProduct(() => renderAdmin());
@@ -332,7 +306,6 @@ function renderReponedor() {
         </button>
       </form>
     </div>
-
     <div class="section-title">
       <h2>Catálogo actual</h2>
       <span>${products.length} producto(s)</span>
@@ -341,7 +314,6 @@ function renderReponedor() {
   `;
 
   renderProductGrid(products, { showDelete: false });
-
   document.getElementById('addForm').addEventListener('submit', (e) => {
     e.preventDefault();
     addProduct(() => renderReponedor());
@@ -360,7 +332,7 @@ function renderCliente() {
   main.innerHTML = `
     <div class="section-title">
       <h2>Productos disponibles</h2>
-      <span>Elige y compra al instante</span>
+      <span>Agrega al carrito y confirma tu compra</span>
     </div>
     <div class="cart-summary">
       <div>Compras realizadas: <b>${purchases.length}</b></div>
@@ -390,7 +362,244 @@ function renderCliente() {
     </div>
   `;
 
-  renderProductGrid(products, { showBuy: true });
+  renderProductGrid(products, { showAddToCart: true });
+  injectCartUI();
+}
+
+/* =====================================================
+   CARRITO — UI
+   ===================================================== */
+
+/** Inyecta el botón flotante y el modal del carrito en el DOM */
+function injectCartUI() {
+  // Botón flotante
+  const fab = document.createElement('button');
+  fab.className = 'cart-fab';
+  fab.id = 'cartFab';
+  fab.innerHTML = `🛒 Ver carrito <span class="cart-badge" id="cartBadge">0</span>`;
+  fab.onclick = openCart;
+  document.body.appendChild(fab);
+
+  // Modal overlay
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'cartModal';
+  overlay.innerHTML = `
+    <div class="cart-modal">
+      <div class="cart-modal-header">
+        <h2>🛒 Tu carrito</h2>
+        <button class="cart-close-btn" onclick="closeCart()">✕</button>
+      </div>
+      <div class="cart-modal-body" id="cartContent"></div>
+      <div class="cart-modal-footer" id="cartFooter" style="display:none;">
+        <div class="cart-total-row">
+          <span>Total a pagar</span>
+          <span id="cartTotalDisplay"></span>
+        </div>
+        <button class="btn-confirm" onclick="confirmPurchase()">
+          ✓ Confirmar compra
+        </button>
+      </div>
+    </div>
+  `;
+  // Cerrar al hacer clic en el fondo
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeCart();
+  });
+  document.body.appendChild(overlay);
+
+  updateCartBadge();
+  renderCartContent();
+}
+
+/** Limpia los elementos del carrito del DOM (al salir de la vista cliente) */
+function removeCartUI() {
+  const fab     = document.getElementById('cartFab');
+  const modal   = document.getElementById('cartModal');
+  if (fab)   fab.remove();
+  if (modal) modal.remove();
+}
+
+function openCart() {
+  renderCartContent();
+  const modal = document.getElementById('cartModal');
+  if (modal) modal.classList.add('open');
+}
+
+function closeCart() {
+  const modal = document.getElementById('cartModal');
+  if (modal) modal.classList.remove('open');
+}
+
+/** Actualiza el número en el botón flotante */
+function updateCartBadge() {
+  const badge = document.getElementById('cartBadge');
+  if (!badge) return;
+  const total = Object.values(cart).reduce((a, b) => a + b, 0);
+  badge.textContent = total;
+}
+
+/** Dibuja el contenido del modal */
+function renderCartContent() {
+  const content = document.getElementById('cartContent');
+  const footer  = document.getElementById('cartFooter');
+  const totalEl = document.getElementById('cartTotalDisplay');
+  if (!content) return;
+
+  const products  = loadProducts();
+  const cartItems = Object.entries(cart)
+    .map(([id, qty]) => {
+      const p = products.find(p => p.id === parseInt(id));
+      return p ? { ...p, qty } : null;
+    })
+    .filter(Boolean);
+
+  if (cartItems.length === 0) {
+    content.innerHTML = `
+      <div class="cart-empty">
+        <div style="font-size:52px;margin-bottom:12px;">🛒</div>
+        <p style="font-weight:600;font-size:16px;margin:0 0 6px;">Tu carrito está vacío</p>
+        <p style="font-size:13px;color:#9a9a8a;margin:0;">
+          Cierra esta ventana y agrega productos desde el catálogo
+        </p>
+      </div>
+    `;
+    if (footer) footer.style.display = 'none';
+    return;
+  }
+
+  const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+
+  content.innerHTML = cartItems.map(item => `
+    <div class="cart-item">
+      <span class="cart-item-emoji">${item.emoji}</span>
+      <div class="cart-item-info">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${fmt(item.price)} c/u</div>
+      </div>
+      <div class="cart-qty-controls">
+        <button onclick="changeQty(${item.id}, -1)">−</button>
+        <span>${item.qty}</span>
+        <button onclick="changeQty(${item.id}, +1)">＋</button>
+      </div>
+      <div class="cart-item-subtotal">${fmt(item.price * item.qty)}</div>
+    </div>
+  `).join('');
+
+  if (footer) {
+    footer.style.display = 'block';
+    if (totalEl) totalEl.textContent = fmt(totalPrice);
+  }
+}
+
+/* =====================================================
+   CARRITO — ACCIONES
+   ===================================================== */
+
+/** Agrega un producto al carrito (desde el catálogo) */
+function addToCart(id) {
+  const products = loadProducts();
+  const product  = products.find(p => p.id === id);
+  if (!product || product.stock <= 0) return;
+
+  const currentQty = cart[id] || 0;
+  if (currentQty >= product.stock) {
+    showToast('No hay más stock disponible');
+    return;
+  }
+
+  cart[id] = currentQty + 1;
+  updateCartBadge();
+  showToast(`"${product.name}" agregado al carrito 🛒`);
+}
+
+/** Incrementa o decrementa cantidad en el modal */
+function changeQty(id, delta) {
+  const products = loadProducts();
+  const product  = products.find(p => p.id === id);
+  if (!product) return;
+
+  const current = cart[id] || 0;
+  const next    = current + delta;
+
+  if (next <= 0) {
+    delete cart[id];
+  } else if (next > product.stock) {
+    showToast('No hay más stock disponible');
+    return;
+  } else {
+    cart[id] = next;
+  }
+
+  updateCartBadge();
+  renderCartContent();
+}
+
+/** Procesa la compra completa */
+function confirmPurchase() {
+  const products  = loadProducts();
+  const cartItems = Object.entries(cart)
+    .map(([id, qty]) => {
+      const p = products.find(p => p.id === parseInt(id));
+      return p ? { ...p, qty } : null;
+    })
+    .filter(Boolean);
+
+  if (cartItems.length === 0) return;
+
+  // Descontar stock
+  cartItems.forEach(item => {
+    const product = products.find(p => p.id === item.id);
+    if (product) product.stock = Math.max(0, product.stock - item.qty);
+  });
+  saveProducts(products);
+
+  // Guardar compras (una entrada por unidad)
+  const purchases = loadPurchases();
+  const username  = getSession().username;
+  cartItems.forEach(item => {
+    for (let i = 0; i < item.qty; i++) {
+      purchases.push({
+        username,
+        name:  item.name,
+        price: item.price,
+        emoji: item.emoji,
+        date:  Date.now(),
+      });
+    }
+  });
+  savePurchases(purchases);
+
+  // Vaciar carrito
+  cart = {};
+
+  // Mostrar pantalla de éxito
+  showSuccessScreen();
+}
+
+/** Pantalla de confirmación dentro del modal */
+function showSuccessScreen() {
+  const content = document.getElementById('cartContent');
+  const footer  = document.getElementById('cartFooter');
+
+  if (content) {
+    content.innerHTML = `
+      <div class="cart-success">
+        <div class="success-icon">✓</div>
+        <h3>¡Compra realizada!</h3>
+        <p>Tus productos han sido procesados exitosamente.<br>¡Gracias por comprar en Minimarket Don Pepe!</p>
+      </div>
+    `;
+  }
+  if (footer) footer.style.display = 'none';
+  updateCartBadge();
+
+  // Cerrar modal y refrescar vista después de 2.5 s
+  setTimeout(() => {
+    closeCart();
+    removeCartUI();
+    renderCliente();
+  }, 2500);
 }
 
 /* =====================================================
@@ -414,10 +623,10 @@ function renderProductGrid(products, opts = {}) {
         ${p.stock === 0 ? 'Sin stock' : p.stock + ' en stock'}
       </div>
       <div class="tag-actions">
-        ${opts.showBuy
+        ${opts.showAddToCart
           ? `<button class="btn btn-orange"
                ${p.stock === 0 ? 'disabled style="opacity:.5;cursor:not-allowed;"' : ''}
-               onclick="buyProduct(${p.id})">Comprar</button>`
+               onclick="addToCart(${p.id})">＋ Al carrito</button>`
           : ''
         }
         ${opts.showDelete
@@ -430,7 +639,7 @@ function renderProductGrid(products, opts = {}) {
 }
 
 /* =====================================================
-   ACCIONES
+   ACCIONES ADMIN / REPONEDOR
    ===================================================== */
 function addProduct(refreshFn) {
   const name  = document.getElementById('p_name').value.trim();
@@ -441,7 +650,7 @@ function addProduct(refreshFn) {
   if (!name || isNaN(price) || isNaN(stock)) return;
 
   const products = loadProducts();
-  const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
+  const newId    = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
   products.push({ id: newId, name, price, stock, emoji });
   saveProducts(products);
   showToast(`"${name}" agregado al catálogo ✅`);
@@ -449,34 +658,12 @@ function addProduct(refreshFn) {
 }
 
 function deleteProduct(id) {
-  let products = loadProducts();
+  let products  = loadProducts();
   const removed = products.find(p => p.id === id);
-  products = products.filter(p => p.id !== id);
+  products      = products.filter(p => p.id !== id);
   saveProducts(products);
   showToast(`"${removed?.name}" eliminado 🗑️`);
   renderAdmin();
-}
-
-function buyProduct(id) {
-  const products = loadProducts();
-  const product  = products.find(p => p.id === id);
-  if (!product || product.stock <= 0) return;
-
-  product.stock -= 1;
-  saveProducts(products);
-
-  const purchases = loadPurchases();
-  purchases.push({
-    username: getSession().username,
-    name:     product.name,
-    price:    product.price,
-    emoji:    product.emoji,
-    date:     Date.now(),
-  });
-  savePurchases(purchases);
-
-  showToast(`Compraste "${product.name}" 🛍️`);
-  renderCliente();
 }
 
 /* =====================================================
