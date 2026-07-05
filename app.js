@@ -5,8 +5,8 @@
 /* ---------- USUARIOS ---------- */
 const USERS = {
   admin:     { password: 'admin123',   role: 'admin',     name: 'Don Pepe (Admin)' },
-  reponedor: { password: 'repo123',    role: 'reponedor', name: 'Carlos (Reponedor)' },
-  cliente:   { password: 'cliente123', role: 'cliente',   name: 'María (Cliente)' },
+  reponedor: { password: 'repo123',    role: 'reponedor', name: 'Reponedor' },
+  cliente:   { password: 'cliente123', role: 'cliente',   name: 'Cliente' },
 };
 
 /* ---------- CATEGORÍAS (basadas en la categorización Unimarc) ---------- */
@@ -14,6 +14,7 @@ const CATEGORIES = [
   { id: 'bebidas_alcohol',     name: 'Bebidas con Alcohol',      emoji: '🍺' },
   { id: 'bebidas_sin_alcohol', name: 'Bebidas sin Alcohol',      emoji: '🥤' },
   { id: 'carnes_pescados',     name: 'Carnes y Pescados',        emoji: '🥩' },
+  { id: 'comidas_listas',      name: 'Comidas Listas',           emoji: '🍱' },
   { id: 'congelados',          name: 'Congelados',               emoji: '🧊' },
   { id: 'despensa',            name: 'Despensa',                 emoji: '🥫' },
   { id: 'dulces_chocolates',   name: 'Dulces y Chocolates',      emoji: '🍫' },
@@ -22,34 +23,17 @@ const CATEGORIES = [
   { id: 'galletas',            name: 'Galletas',                 emoji: '🍪' },
   { id: 'lacteos',             name: 'Lácteos, Quesos y Huevos', emoji: '🥛' },
   { id: 'panaderia',           name: 'Panadería y Pastelería',   emoji: '🥖' },
+  { id: 'pastas_masas',        name: 'Pastas Frescas y Masas',   emoji: '🍝' },
   { id: 'snacks',              name: 'Snacks',                   emoji: '🍿' },
   { id: 'higiene',             name: 'Higiene y Cuidado',        emoji: '🧴' },
   { id: 'limpieza',            name: 'Limpieza',                 emoji: '🧹' },
+  { id: 'menaje',              name: 'Menaje y Librería',        emoji: '🍽️' },
 ];
 
-/* ---------- PRODUCTOS PREDETERMINADOS ---------- */
-const SEED_PRODUCTS = [
-  { id: 1,  name: 'Pan baguette',          price: 1200, stock: 20, emoji: '🥖', category: 'panaderia' },
-  { id: 2,  name: 'Leche entera 1L',       price: 1100, stock: 30, emoji: '🥛', category: 'lacteos' },
-  { id: 3,  name: 'Huevos x12',            price: 3200, stock: 15, emoji: '🥚', category: 'lacteos' },
-  { id: 4,  name: 'Manzanas (kg)',          price: 1500, stock: 25, emoji: '🍎', category: 'frutas_verduras' },
-  { id: 5,  name: 'Arroz 1kg',             price: 1300, stock: 40, emoji: '🍚', category: 'despensa' },
-  { id: 6,  name: 'Coca-Cola 1.5L',        price: 1800, stock: 18, emoji: '🥤', category: 'bebidas_sin_alcohol' },
-  { id: 7,  name: 'Aceite vegetal 1L',     price: 2400, stock: 12, emoji: '🫙', category: 'despensa' },
-  { id: 8,  name: 'Fideos 500g',           price:  950, stock: 35, emoji: '🍝', category: 'despensa' },
-  { id: 9,  name: 'Detergente 1L',         price: 2100, stock: 20, emoji: '🧴', category: 'limpieza' },
-  { id: 10, name: 'Papel higiénico x4',    price: 2800, stock: 22, emoji: '🧻', category: 'higiene' },
-  { id: 11, name: 'Queso laminado 200g',   price: 3500, stock: 10, emoji: '🧀', category: 'lacteos' },
-  { id: 12, name: 'Yogurt natural',        price:  890, stock: 28, emoji: '🥛', category: 'lacteos' },
-  { id: 13, name: 'Pechuga de pollo (kg)', price: 4200, stock:  8, emoji: '🍗', category: 'carnes_pescados' },
-  { id: 14, name: 'Plátanos (kg)',         price:  990, stock: 30, emoji: '🍌', category: 'frutas_verduras' },
-  { id: 15, name: 'Galletas María 200g',   price:  790, stock: 25, emoji: '🍪', category: 'galletas' },
-  { id: 16, name: 'Chocolate barra',       price: 1200, stock: 20, emoji: '🍫', category: 'dulces_chocolates' },
-  { id: 17, name: 'Cerveza lata',          price:  990, stock: 24, emoji: '🍺', category: 'bebidas_alcohol' },
-  { id: 18, name: 'Jamón cocido 100g',     price: 1800, stock: 15, emoji: '🌭', category: 'fiambres' },
-  { id: 19, name: 'Papas fritas 200g',     price: 1490, stock: 20, emoji: '🍟', category: 'snacks' },
-  { id: 20, name: 'Helado 1L',             price: 3200, stock: 10, emoji: '🍦', category: 'congelados' },
-];
+/* ---------- PRODUCTOS PREDETERMINADOS ----------
+   El catálogo parte vacío: los productos los carga
+   el admin o el reponedor desde su panel. */
+const SEED_PRODUCTS = [];
 
 /* ---------- CATEGORÍAS DE EMOJIS ---------- */
 const EMOJI_CATEGORIES = [
@@ -74,14 +58,23 @@ let currentCategory = 'all';   // filtro activo
 /* =====================================================
    ALMACENAMIENTO
    ===================================================== */
+const CATALOG_VERSION = '2'; // subir este número si se necesita forzar otra limpieza a futuro
+
 function loadProducts() {
-  const raw = localStorage.getItem('mm_products');
-  let p = raw ? JSON.parse(raw) : [];
-  if (!p || p.length === 0) {
-    p = JSON.parse(JSON.stringify(SEED_PRODUCTS));
-    localStorage.setItem('mm_products', JSON.stringify(p));
+  // Migración: si el navegador todavía tiene el catálogo de demo antiguo
+  // (versión previa), se limpia una sola vez para partir con catálogo vacío.
+  if (localStorage.getItem('mm_catalog_version') !== CATALOG_VERSION) {
+    localStorage.setItem('mm_products', JSON.stringify(SEED_PRODUCTS));
+    localStorage.setItem('mm_catalog_version', CATALOG_VERSION);
   }
-  return p;
+
+  const raw = localStorage.getItem('mm_products');
+  if (raw === null) {
+    const initial = JSON.parse(JSON.stringify(SEED_PRODUCTS));
+    localStorage.setItem('mm_products', JSON.stringify(initial));
+    return initial;
+  }
+  return JSON.parse(raw);
 }
 function saveProducts(p)  { localStorage.setItem('mm_products',  JSON.stringify(p)); }
 function loadPurchases()  { return JSON.parse(localStorage.getItem('mm_purchases') || '[]'); }
@@ -175,13 +168,13 @@ function buildCategorySelect() {
    TABS DE CATEGORÍAS (para cliente)
    ===================================================== */
 function buildCategoryTabs(products) {
-  const usedIds  = [...new Set(products.map(p => p.category).filter(Boolean))];
-  const usedCats = CATEGORIES.filter(c => usedIds.includes(c.id));
+  // Se muestran SIEMPRE todas las categorías (las mismas que usa el admin/reponedor
+  // al crear un producto), tengan o no productos cargados todavía.
   return `
     <div class="category-tabs">
       <button class="category-tab ${currentCategory === 'all' ? 'active' : ''}"
               onclick="setCategory('all')">🏪 Todos</button>
-      ${usedCats.map(c => `
+      ${CATEGORIES.map(c => `
         <button class="category-tab ${currentCategory === c.id ? 'active' : ''}"
                 onclick="setCategory('${c.id}')">
           ${c.emoji} ${c.name}
